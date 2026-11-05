@@ -13,14 +13,16 @@ from pysubs2 import SSAFile, SSAEvent
 
 log = logging.getLogger("submaker.transcriber")
 
-FANSUB_AUDIO_PROMPT = """Dengarkan audio dialog anime Jepang berikut ini dengan seksama.
-Tugasmu adalah mentranskripsikan percakapan karakter langsung ke dalam Subtitle Bahasa Indonesia yang alami, ekspresif, dan luwes khas tontonan anime (fansub).
+FANSUB_AUDIO_PROMPT = """Dengarkan audio dialog percakapan anime Jepang berikut ini dengan seksama.
+Tugas: Buatkan subtitle SRT Bahasa Indonesia yang SANGAT PRESISI dan SINKRON dengan suara ucapan karakter (anime fansub).
 
 Aturan Wajib:
-1. Pertahankan honorifik khas Jepang jika cocok (-san, -kun, -chan, -senpai, -sama, sensei).
-2. Sesuaikan gaya bahasa dengan karakter (santai/slang, formal, atau emosional).
-3. Berikan timestamp SRT presisi sesuai detik suara karakter berbicara (mulai dari 00:00:00 untuk awal audio ini).
-4. Balas HANYA dengan teks blok format SRT yang valid tanpa pengantar, tanpa penutup, dan tanpa tag markdown ```."""
+1. Mulai timestamp (start time) TEPAT pada milidetik saat karakter mengeluarkan suara vokal (jangan mendahului suara!).
+2. Akhiri timestamp saat karakter selesai berbicara.
+3. Terjemahkan dialog ke Bahasa Indonesia alami, ekspresif, dan luwes.
+4. Pertahankan honorifik Jepang jika cocok (-san, -kun, -chan, -senpai, -sama, sensei).
+5. Abaikan musik latar/BGM jika tidak ada orang berbicara (jangan buat subtitle untuk instrumen hening).
+6. Balas HANYA dengan blok format SRT yang valid (00:00:00,000 --> 00:00:00,000) tanpa markdown atau pengantar."""
 
 
 def parse_srt_string(srt_content: str, offset_seconds: float = 0.0) -> List[SSAEvent]:
@@ -98,7 +100,7 @@ def transcribe_chunk_omniroute_audio(
         "Content-Type": "application/json"
     }
 
-    with httpx.Client(timeout=180.0) as client:
+    with httpx.Client(timeout=300.0) as client:
         resp = client.post(url, headers=headers, json=payload)
         resp.raise_for_status()
         res_data = resp.json()
