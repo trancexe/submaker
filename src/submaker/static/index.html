@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Submaker Studio — Anime Video & Subtitle Maker ✨</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    * { font-family: 'Plus Jakarta Sans', sans-serif; }
+    code, .mono { font-family: 'JetBrains Mono', monospace; }
+    body { background: #09090b; color: #fafafa; }
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: #18181b; }
+    ::-webkit-scrollbar-thumb { background: #3f3f46; border-radius: 3px; }
+    .glass { background: rgba(24,24,27,0.8); backdrop-filter: blur(16px); border: 1px solid rgba(63,63,70,0.5); }
+    .glow-indigo { box-shadow: 0 0 25px -5px rgba(99, 102, 241, 0.4); }
+    .progress-bar { transition: width 0.3s ease; }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col antialiased">
+
+  <!-- Header -->
+  <header class="border-b border-zinc-800/80 bg-zinc-950/80 sticky top-0 z-40 backdrop-blur-md px-4 py-3">
+    <div class="max-w-5xl mx-auto flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+      <div class="flex items-center space-x-3">
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-600 via-pink-500 to-purple-500 flex items-center justify-center shadow-lg shadow-indigo-500/25 shrink-0">
+          <svg class="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M7 4v16M17 4v16M3 8h4m10 0h4M3 12h18M3 16h4m10 0h4M4 20h16a1 1 0 001-1V5a1 1 0 00-1-1H4a1 1 0 00-1 1v14a1 1 0 001 1z"/>
+          </svg>
+        </div>
+        <div>
+          <div class="flex items-center space-x-2">
+            <h1 class="text-lg font-extrabold tracking-tight bg-gradient-to-r from-white via-zinc-200 to-zinc-400 bg-clip-text text-transparent">Submaker Studio</h1>
+            <span class="text-[10px] font-mono bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 px-2 py-0.5 rounded-full font-semibold">AI Fansub GUI</span>
+          </div>
+          <p class="text-xs text-zinc-400">Download Anime & Otomatis Buat Subtitle Bahasa Indonesia 🎬</p>
+        </div>
+      </div>
+
+      <!-- Navigation Tabs -->
+      <nav class="flex items-center bg-zinc-900/90 border border-zinc-800 p-1 rounded-xl gap-1">
+        <button id="tab-btn-download" onclick="switchTab('download')" class="tab-btn px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center space-x-2 transition-all bg-indigo-600 text-white shadow-sm">
+          <span>📥 Unduh & Subtitle</span>
+        </button>
+        <button id="tab-btn-files" onclick="switchTab('files')" class="tab-btn px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center space-x-2 transition-all text-zinc-400 hover:text-zinc-200">
+          <span>📁 Hasil Unduhan</span>
+          <span id="files-badge" class="px-1.5 py-0.2 text-[10px] rounded-full bg-zinc-800 text-zinc-300 font-mono">0</span>
+        </button>
+        <button id="tab-btn-settings" onclick="switchTab('settings')" class="tab-btn px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center space-x-2 transition-all text-zinc-400 hover:text-zinc-200">
+          <span>⚙️ Pengaturan AI</span>
+        </button>
+      </nav>
+    </div>
+  </header>
+
+  <!-- Main Container -->
+  <main class="max-w-5xl mx-auto w-full p-4 flex-1">
+    
+    <!-- TAB 1: DOWNLOAD & SUBS MAKER -->
+    <div id="tab-download" class="space-y-6">
+      
+      <!-- Input Card -->
+      <div class="glass p-5 rounded-2xl space-y-4">
+        <label class="block text-xs font-bold uppercase tracking-wider text-zinc-400">Tautan FrameX Anime / Serial / Film</label>
+        <div class="flex gap-2">
+          <input id="input-url" type="text" placeholder="https://framextv.xyz/watch/95897/1/1 atau ID TMDB..." 
+                 value="https://framextv.xyz/watch/95897/1/1"
+                 class="flex-1 bg-zinc-950/70 border border-zinc-700/80 rounded-xl px-4 py-2.5 text-sm text-zinc-100 placeholder-zinc-500 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all">
+          <button id="btn-inspect" onclick="inspectLink()" class="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-500 active:scale-95 text-white font-semibold text-sm rounded-xl transition-all shadow-md shadow-indigo-600/30 flex items-center space-x-2">
+            <span id="btn-inspect-text">Periksa Link</span>
+            <div id="btn-inspect-spinner" class="hidden w-4 h-4 border-2 border-white/20 border-t-white rounded-full animate-spin"></div>
+          </button>
+        </div>
+      </div>
+
+      <!-- Preview Card (Hidden by default) -->
+      <div id="preview-card" class="hidden glass p-5 rounded-2xl space-y-5">
+        <div class="flex flex-col sm:flex-row gap-5">
+          <img id="meta-poster" src="" alt="Poster" class="w-32 h-44 object-cover rounded-xl shadow-md border border-zinc-800 shrink-0">
+          <div class="space-y-2 flex-1">
+            <div class="flex items-center gap-2">
+              <span id="meta-rating" class="px-2 py-0.5 text-xs font-bold rounded-md bg-amber-500/20 text-amber-300 border border-amber-500/30">★ 0.0</span>
+              <span id="meta-year" class="text-xs text-zinc-400 font-mono">2024</span>
+              <span id="meta-type" class="px-2 py-0.5 text-[10px] font-bold rounded-md bg-zinc-800 text-zinc-300 uppercase">ANIME</span>
+            </div>
+            <h2 id="meta-title" class="text-xl font-extrabold text-white">Title</h2>
+            <p id="meta-overview" class="text-xs text-zinc-300 line-clamp-3 leading-relaxed"></p>
+          </div>
+        </div>
+
+        <!-- Episode Selector (If series) -->
+        <div id="episode-picker" class="hidden space-y-2 border-t border-zinc-800/80 pt-4">
+          <label class="block text-xs font-bold text-zinc-400">PILIH EPISODE:</label>
+          <div id="episode-grid" class="flex flex-wrap gap-1.5 max-h-48 overflow-y-auto p-1"></div>
+        </div>
+
+        <!-- Download & Subtitle Options -->
+        <div class="border-t border-zinc-800/80 pt-4 space-y-4">
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            
+            <!-- Sources -->
+            <div class="space-y-2">
+              <label class="block text-xs font-bold text-zinc-400 uppercase tracking-wider">Sumber Kualitas Stream</label>
+              <select id="select-source" class="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2 text-xs text-zinc-200 focus:border-indigo-500"></select>
+            </div>
+
+            <!-- Subtitle Features -->
+            <div class="space-y-2">
+              <label class="block text-xs font-bold text-zinc-400 uppercase tracking-wider">Pengaturan Subtitle Indonesia</label>
+              <div class="p-3 bg-zinc-950/60 border border-zinc-800 rounded-xl space-y-2">
+                <label class="flex items-center space-x-2 text-xs text-zinc-200 cursor-pointer">
+                  <input id="chk-auto-sub" type="checkbox" checked class="rounded border-zinc-700 text-indigo-600 focus:ring-0">
+                  <span class="font-semibold text-indigo-400">✨ Buat Subtitle Bahasa Indonesia Otomatis</span>
+                </label>
+                <p class="text-[11px] text-zinc-400 leading-normal">
+                  Jika video punya subtitle bawaan (Inggris/Spanyol/dll), otomatis diterjemahkan. Jika RAW (tanpa sub sama sekali), otomatis ditranskripsi dari suara audio Jepang via Whisper ASR!
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Filename -->
+          <div class="space-y-1">
+            <label class="block text-xs font-bold text-zinc-400">Nama File Hasil</label>
+            <input id="input-filename" type="text" class="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2 text-xs font-mono text-zinc-200 focus:border-indigo-500">
+          </div>
+
+          <!-- Action Button -->
+          <button id="btn-start-download" onclick="startDownloadProcess()" class="w-full py-3 bg-gradient-to-r from-indigo-600 to-pink-600 hover:from-indigo-500 hover:to-pink-500 active:scale-[0.99] text-white font-bold text-sm rounded-xl shadow-lg shadow-indigo-600/30 transition-all flex items-center justify-center space-x-2">
+            <span>🚀 Mulai Download Video & Generate Subtitle Indonesia</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Active Tasks Progress Card -->
+      <div id="tasks-container" class="space-y-3"></div>
+
+    </div>
+
+    <!-- TAB 2: DOWNLOADED FILES & GENERATOR -->
+    <div id="tab-files" class="hidden space-y-4">
+      <div class="flex items-center justify-between">
+        <h3 class="text-sm font-bold text-zinc-300">File Tersimpan di Server Lokal</h3>
+        <button onclick="refreshFilesList()" class="px-3 py-1 bg-zinc-800 hover:bg-zinc-700 text-xs rounded-lg text-zinc-200 transition-all">🔄 Segarkan</button>
+      </div>
+
+      <div id="files-list" class="space-y-2">
+        <p class="text-xs text-zinc-500 italic">Memuat file...</p>
+      </div>
+    </div>
+
+    <!-- TAB 3: AI SETTINGS -->
+    <div id="tab-settings" class="hidden space-y-4">
+      <div class="glass p-5 rounded-2xl space-y-5">
+        <div>
+          <h3 class="text-base font-bold text-white">Konfigurasi Mesin Terjemahan & Whisper</h3>
+          <p class="text-xs text-zinc-400">Sesuaikan model penerjemahan LLM fansub atau model faster-whisper lokal.</p>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div class="space-y-1">
+            <label class="text-xs font-semibold text-zinc-400">Penyedia Terjemahan (Provider)</label>
+            <select id="cfg-provider" class="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2 text-xs text-zinc-200">
+              <option value="google">Google Translate (Gratis & Cepat)</option>
+              <option value="llm">LLM Fansub AI (OpenAI / OpenRouter / Groq / Ollama)</option>
+            </select>
+          </div>
+
+          <div class="space-y-1">
+            <label class="text-xs font-semibold text-zinc-400">Whisper Local Model (CPU int8)</label>
+            <select id="cfg-whisper-model" class="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2 text-xs text-zinc-200">
+              <option value="tiny">tiny (Sangat Cepat)</option>
+              <option value="base">base (Cepat)</option>
+              <option value="small">small (Seimbang)</option>
+              <option value="medium">medium (Akurat & Direkomendasikan)</option>
+              <option value="large-v3">large-v3 (Paling Akurat)</option>
+            </select>
+          </div>
+
+          <div class="space-y-1">
+            <label class="text-xs font-semibold text-zinc-400">OpenAI / OpenRouter API Key</label>
+            <input id="cfg-api-key" type="password" placeholder="sk-..." class="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2 text-xs font-mono text-zinc-200">
+          </div>
+
+          <div class="space-y-1">
+            <label class="text-xs font-semibold text-zinc-400">Base URL (Opsional)</label>
+            <input id="cfg-base-url" type="text" placeholder="https://api.openai.com/v1" class="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2 text-xs font-mono text-zinc-200">
+          </div>
+
+          <div class="space-y-1">
+            <label class="text-xs font-semibold text-zinc-400">Model Name</label>
+            <input id="cfg-model" type="text" placeholder="gpt-4o-mini atau deepseek-chat" class="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2 text-xs font-mono text-zinc-200">
+          </div>
+
+          <div class="space-y-1">
+            <label class="text-xs font-semibold text-zinc-400">Groq API Key (Opsional untuk Whisper ASR Kilat)</label>
+            <input id="cfg-groq-key" type="password" placeholder="gsk_..." class="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2 text-xs font-mono text-zinc-200">
+          </div>
+        </div>
+
+        <button onclick="saveSettings()" class="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs rounded-xl shadow-md transition-all">
+          Simpan Konfigurasi
+        </button>
+      </div>
+    </div>
+
+  </main>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>
