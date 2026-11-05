@@ -11,10 +11,10 @@ from typing import Dict, Any, Optional
 from fastapi import APIRouter, BackgroundTasks, HTTPException
 from pydantic import BaseModel
 
-from ..downloader.config import DOWNLOADS_DIR
-from ..config import load_config
-from ..sub_utils import load_subtitle, save_subtitle
-from ..translator import translate_subtitles
+from ..config import DOWNLOADS_DIR
+from .config import load_config
+from .sub_utils import load_subtitle, save_subtitle
+from .translator import translate_subtitles
 from .transcriber import transcribe_audio_pipeline
 
 log = logging.getLogger("submaker.subtitles.router")
@@ -33,6 +33,32 @@ class TranslateSubRequest(BaseModel):
 class TranscribeAudioRequest(BaseModel):
     filename: str
     chunk_minutes: float = 4.0
+
+
+class ShiftSubRequest(BaseModel):
+    filename: str
+    offset_seconds: float
+
+
+@router.post("/shift-timing")
+async def shift_timing_endpoint(req: ShiftSubRequest):
+    sub_path = DOWNLOADS_DIR / req.filename
+    if not sub_path.exists():
+        raise HTTPException(status_code=404, detail="File subtitle tidak ditemukan")
+
+    from .sub_utils import load_subtitle, save_subtitle, shift_subtitle_timing
+    subs = load_subtitle(sub_path)
+    shift_subtitle_timing(subs, int(req.offset_seconds * 1000))
+    save_subtitle(subs, sub_path, format="srt")
+    return {
+        "success": True,
+        "message": f"Waktu {req.filename} berhasil digeser {req.offset_seconds:+.2f} detik"
+    }
+
+
+@router.get("/jobs")
+async def list_subtitle_jobs():
+    return active_sub_jobs
 
 
 @router.get("/jobs/{job_id}")
@@ -56,6 +82,7 @@ async def start_subtitle_translation(req: TranslateSubRequest, background_tasks:
     active_sub_jobs[job_id] = {
         "job_id": job_id,
         "type": "translate",
+        "source_file": req.filename,
         "target_file": out_filename,
         "status": "processing",
         "percent": 0,
@@ -113,6 +140,7 @@ async def start_audio_transcription(req: TranscribeAudioRequest, background_task
     active_sub_jobs[job_id] = {
         "job_id": job_id,
         "type": "transcribe",
+        "source_file": req.filename,
         "target_file": out_filename,
         "status": "processing",
         "percent": 0,
@@ -149,3 +177,32 @@ async def start_audio_transcription(req: TranscribeAudioRequest, background_task
         "target_file": out_filename,
         "message": f"Transkripsi audio dimulai untuk {req.filename}"
     }
+
+
+class ConfigModel(BaseModel):
+    provider: Optional[str] = None
+    openai_model: Optional[str] = None
+    openai_base_url: Optional[str] = None
+    openai_api_key: Optional[str] = None
+
+
+@router.get("/config")
+async def get_subtitles_config():
+    from .config import load_config
+    return load_config()
+
+
+@router.post("/config")
+async def save_subtitles_config(req: ConfigModel):
+    from .config import load_config, save_config
+    cfg = load_config()
+    if req.provider is not None:
+        cfg["provider"] = req.provider
+    if req.openai_model is not None:
+        cfg["openai_model"] = req.openai_model
+    if req.openai_base_url is not None:
+        cfg["openai_base_url"] = req.openai_base_url
+    if req.openai_api_key is not None:
+        cfg["openai_api_key"] = req.openai_api_key
+    save_config(cfg)
+    return {"success": True, "config": cfg}
