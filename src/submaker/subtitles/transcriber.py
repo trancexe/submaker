@@ -132,16 +132,10 @@ def transcribe_audio_pipeline(
     cache_dir.mkdir(parents=True, exist_ok=True)
 
     # Step 1: Extract lightweight master MP3
-    master_mp3 = cache_dir / "master_audio.mp3"
-    if not master_mp3.exists():
-        if on_progress:
-            on_progress(0, 100, "Mengekstrak audio vokal MP3...")
-        extract_audio_mp3(video_path, master_mp3)
-
-    # Step 2: Slice into silence-aware chunks
+    # Step 1 & 2: Slice directly from video into sample-accurate silence-guided chunks
     if on_progress:
-        on_progress(5, 100, "Mendeteksi titik hening dan memotong segmen audio...")
-    chunks = slice_audio_chunks(master_mp3, cache_dir, target_chunk_seconds=chunk_minutes * 60.0)
+        on_progress(5, 100, "Mendeteksi titik hening dan memotong segmen audio presisi...")
+    chunks = slice_audio_chunks(video_path, cache_dir, target_chunk_seconds=chunk_minutes * 60.0)
     total_chunks = len(chunks)
 
     all_events: List[SSAEvent] = []

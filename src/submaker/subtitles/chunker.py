@@ -123,29 +123,41 @@ def calculate_split_points(
 
 
 def slice_audio_chunks(
-    audio_path: str | Path,
+    source_media_path: str | Path,
     output_dir: str | Path,
     target_chunk_seconds: float = 240.0
 ) -> List[Dict[str, Any]]:
     """
-    Extracts and slices audio into silence-guided chunks.
+    Extracts and slices audio directly from source media (video/audio) into silence-guided MP3 chunks.
+    Slicing directly from indexed container (MP4/MKV) guarantees sample-accurate seeking without MP3 frame drift.
     Returns list of dicts:
     [
-        {"index": 0, "path": Path, "start": 0.0, "end": 598.2, "duration": 598.2},
+        {"index": 0, "path": Path, "start": 0.0, "end": 240.2, "duration": 240.2},
         ...
     ]
     """
-    audio_path = Path(audio_path)
+    source_media_path = Path(source_media_path)
     output_dir = Path(output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    total_duration = get_media_duration(audio_path)
+    total_duration = get_media_duration(source_media_path)
+    stem_name = source_media_path.stem
+
     if total_duration <= target_chunk_seconds * 1.1:
         # Single chunk is sufficient
-        single_chunk = output_dir / f"{audio_path.stem}_part_000.mp3"
+        single_chunk = output_dir / f"{stem_name}_part_000.mp3"
         if not single_chunk.exists():
-            import shutil
-            shutil.copy2(audio_path, single_chunk)
+            cmd = [
+                "ffmpeg", "-y",
+                "-i", str(source_media_path),
+                "-vn",
+                "-c:a", "libmp3lame",
+                "-ar", "16000",
+                "-ac", "1",
+                "-b:a", "64k",
+                str(single_chunk)
+            ]
+            subprocess.run(cmd, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE)
         return [{
             "index": 0,
             "path": single_chunk,
@@ -154,7 +166,7 @@ def slice_audio_chunks(
             "duration": total_duration
         }]
 
-    silence_intervals = find_silence_points(audio_path)
+    silence_intervals = find_silence_points(source_media_path)
     split_points = calculate_split_points(total_duration, silence_intervals, target_chunk_seconds)
 
     chunks = []
@@ -162,15 +174,20 @@ def slice_audio_chunks(
 
     for idx, cut_point in enumerate(split_points):
         dur = cut_point - prev_point
-        chunk_file = output_dir / f"{audio_path.stem}_part_{idx:03d}.mp3"
+        chunk_file = output_dir / f"{stem_name}_part_{idx:03d}.mp3"
 
         if not chunk_file.exists():
+            # Crucial: Seek directly on indexed video container with -ss before -i for sample-accurate audio extraction
             cmd = [
                 "ffmpeg", "-y",
                 "-ss", f"{prev_point:.3f}",
-                "-i", str(audio_path),
+                "-i", str(source_media_path),
                 "-t", f"{dur:.3f}",
-                "-c", "copy",
+                "-vn",
+                "-c:a", "libmp3lame",
+                "-ar", "16000",
+                "-ac", "1",
+                "-b:a", "64k",
                 str(chunk_file)
             ]
             subprocess.run(cmd, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE)
