@@ -161,10 +161,22 @@ def transcribe_audio_pipeline(
             on_progress(pct, 100, f"Mentranskripsikan audio bag. {i+1}/{total_chunks}...")
 
         if ckpt_file.exists():
-            # Resume from checkpoint
+            # Resume from checkpoint if it has valid events
             with open(ckpt_file, "r", encoding="utf-8") as f:
                 saved_data = json.load(f)
-            chunk_events = [SSAEvent(start=item["start"], end=item["end"], text=item["text"]) for item in saved_data]
+            if saved_data:
+                chunk_events = [SSAEvent(start=item["start"], end=item["end"], text=item["text"]) for item in saved_data]
+            else:
+                chunk_events = transcribe_chunk_omniroute_audio(
+                    chunk_path=chunk_file,
+                    api_key=api_key,
+                    base_url=base_url,
+                    model=model,
+                    start_offset=start_offset
+                )
+                save_payload = [{"start": ev.start, "end": ev.end, "text": ev.text} for ev in chunk_events]
+                with open(ckpt_file, "w", encoding="utf-8") as f:
+                    json.dump(save_payload, f, ensure_ascii=False, indent=2)
         else:
             # Transcribe chunk
             chunk_events = transcribe_chunk_omniroute_audio(
